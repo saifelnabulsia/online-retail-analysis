@@ -35,7 +35,22 @@ Findings from the verification pass (`sql/03_verification.sql`):
 - **Country field:** 43 distinct values; some may not be countries.
 
 ## Key findings
-_To be added as analysis is completed._
+
+### 1. Revenue is strongly seasonal, peaking in November.**
+Both years peak in November — £1.42M in 2010 and £1.46M in 2011 — with the
+ramp beginning in September and revenue roughly doubling off a £500–700K
+baseline. This is consistent with a wholesale gift retailer shipping stock
+to retailers ahead of Christmas. The practical implication is that
+month-on-month comparisons are misleading on this data: a January decline
+is seasonal, not a downturn. Year-on-year comparison of the same month is
+the honest read.
+
+![Monthly revenue](outputs/q1_revenue_by_month.png)
+
+*Dec 2011 excluded because the data ends 09/12/2011. Daily revenue over those 9 days
+was £48.2K against £48.7K in November, so the run rate was flat and the
+apparent collapse is an artifact of the cut-off, not a change in the business.*
+
 
 ## Repo
 - `sql/` — queries, numbered in execution order
