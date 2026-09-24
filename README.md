@@ -93,6 +93,7 @@ apparent collapse is an artifact of the cut-off, not a change in the business.*
 - `sql/` — queries, numbered in execution order
 - `convert.py` — xlsx → CSV conversion
 - `outputs/` — charts and exported results
+- `notes/` - data quality investigation and decisions
 
 Raw data files are not committed. Download from the source above and run
 `convert.py` to reproduce.
