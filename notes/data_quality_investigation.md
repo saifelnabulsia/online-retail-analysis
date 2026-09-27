@@ -319,6 +319,102 @@ legitimately have been 3.2% lower.
 
 ---
 
+
+## Check 6 — Phantom order (found during Q6, not during the cleaning pass)
+
+**How it surfaced:** Q6's like-for-like returns figure came to £552,429,
+against £1,526,668 of total cancellation value found in Check 4. A 64% gap
+is too large to accept without explanation, so the cancellation value was
+broken down by stock code.
+
+```sql
+SELECT stock_code, SUM(quantity * price) AS returns_value
+FROM retail_raw
+WHERE invoice LIKE 'C%'
+  AND price > 0
+  AND invoice_date < '2011-12-01'
+GROUP BY stock_code
+ORDER BY returns_value ASC
+LIMIT 15;
+```
+
+**First finding — the gap is accounting, not goods.** The largest
+contributors were `M` (manual) at −£423,107 and `AMAZONFEE` at −£265,350,
+followed by `BANK CHARGES`, `POST`, `D`, `CRUK` and `S`. Roughly £767K of
+the £974K gap sits in non-product codes already excluded by the cleaning
+pass; the remainder is further down the list plus December 2011. The
+exclusions were correct, and the distinction is itself the Q6 finding: two
+thirds of "cancellation" value is reversal, not returned goods.
+
+**Second finding — one row dominates the genuine returns.** Stock code
+`23166` appeared at −£77,480, 4.4x the next product (`22423`, −£16,646).
+That is not a normal distribution, so the rows behind it were pulled:
+
+```sql
+SELECT * FROM retail_raw
+WHERE stock_code = '23166' AND invoice LIKE 'C%'
+ORDER BY quantity ASC LIMIT 10;
+```
+
+One row accounts for almost all of it:
+
+| invoice | description | quantity | invoice_date | price | customer_id |
+|---|---|---|---|---|---|
+| C541433 | MEDIUM CERAMIC TOP STORAGE JAR | −74,215 | 2011-01-18 10:17 | 1.04 | 12346 |
+
+Every other cancellation of this product is −240 or smaller.
+
+**Third finding — it has a matching purchase 16 minutes earlier.**
+
+```sql
+SELECT * FROM retail_raw WHERE customer_id = '12346';
+```
+
+| invoice | quantity | invoice_date |
+|---|---|---|
+| 541431 | +74,215 | 2011-01-18 **10:01** |
+| C541433 | −74,215 | 2011-01-18 **10:17** |
+
+Sixteen minutes apart. This is an order-entry error caught and reversed the
+same morning, not a customer return — nobody ships 74,215 ceramic jars and
+takes them back before lunch.
+
+The wider history of customer 12346 supports this: `TEST001` purchased on
+nine separate occasions, plus `TEST002`, `ADJUST`, `Manual` and `Discount`
+rows. This looks like an internal or test account rather than a customer.
+
+**Why it mattered urgently.** `retail_clean` excludes cancellations but
+keeps the original orders, so the +74,215 row was sitting in the clean table
+while its reversal had been removed — £77,184 of revenue for an order that
+never happened. More seriously, 74,215 units in a single row would almost
+certainly have made this the top product by units sold in Q2.
+
+**Decision:** exclude invoice `541431` from `retail_clean` (its cancellation
+`C541433` is already caught by the `NOT LIKE 'C%'` rule), and exclude
+`C541433` from the Q6 numerator so both sides of the error are treated
+consistently.
+
+**Considered and rejected:** excluding customer 12346 entirely. Their other
+purchases — doormats in June 2010, parasols in March 2010 — look like
+genuine orders. Excluding one bad invoice is minimal and defensible;
+excluding a whole customer would need its own justification and would affect
+Q5.
+
+**Effect on the Q6 answer:**
+
+| Treatment | Return rate |
+|---|---|
+| As found | 2.83% |
+| Both sides of the error removed | **2.45%** |
+
+**Known limitation this exposes:** `retail_clean` removes cancellation rows
+but does not remove the original orders they cancel. This one was caught
+because it was large enough to distort a ranking; smaller cancelled orders
+remain in the clean table. Fixing it properly means matching every
+cancellation to its original invoice, which is out of scope for v1.
+
+---
+
 ## Summary — exclusion list for `retail_clean`
 
 | # | Exclude | Rows | Reason |
@@ -328,6 +424,10 @@ legitimately have been 3.2% lower.
 | 3 | Zero prices | 6,202 | Back-office corrections, not sales |
 | 4 | Cancellations (`invoice LIKE 'C%'`) | 19,494 | Returns — excluded from sales analysis, analysed separately in Q6 |
 | 5 | December 2011 | — | Partial month (9 days); verified safe to drop, daily run rate flat (£48.2K/day vs £48.7K in November) |
+| 6 | Phantom order (invoice `541431`) | 1 | Cancelled 16 minutes after being placed; an entry error, not a sale (see Check 6) |
+
+**Result:** 1,067,371 rows in, **1,011,989 out** — 55,382 removed (5.2%).
+Gross product revenue in `retail_clean`: **£19,417,504.15**.
 
 **Kept deliberately:** duplicate rows (34,335 excess, 3.2%) — ambiguous, and
 removal risks understating revenue.
@@ -341,7 +441,8 @@ removal risks understating revenue.
 
 - Count of NULL descriptions (Check 3)
 - Row count removed by the non-product stock code exclusion
-- Gift voucher treatment decision
+- Cancelled orders whose original purchase remains in `retail_clean`
+  (see Check 6) — only the one large case was handled
 - Whether `retail_clean` should also drop rows with no customer ID (243,007,
   22.8%) — currently **no**: they are usable for Q1–Q4 and Q6, and only Q5
   needs to filter them out
