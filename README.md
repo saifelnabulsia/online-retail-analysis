@@ -76,6 +76,9 @@ which is left unmodified. Full investigation and reasoning in
   units sold and inflated revenue by £77,184. Found while investigating an
   outlier in the returns analysis, not during the initial cleaning pass.
 
+  **Result:** 1,067,371 rows in `retail_raw`, 1,011,989 in `retail_clean` —
+55,382 rows removed (5.2%). Gross product revenue: £19,417,504.15.
+
 ## Key findings
 
 ### 1. Revenue is strongly seasonal, peaking in November.**
@@ -92,6 +95,25 @@ the honest read.
 *Dec 2011 excluded because the data ends 09/12/2011. Daily revenue over those 9 days
 was £48.2K against £48.7K in November, so the run rate was flat and the
 apparent collapse is an artifact of the cut-off, not a change in the business.*
+
+### 2. Returns are 2.45% of revenue — and the headline figure is misleading twice over
+
+Cancellation rows total £1.53M, which would suggest a return rate near 8%.
+Two corrections bring that down. First, two thirds of that value is
+accounting reversal rather than goods coming back: manual adjustments
+(£423,107) and Amazon fees (£265,350) dominate, alongside bank charges,
+postage and discounts. Second, a single transaction — 74,215 ceramic storage
+jars ordered and cancelled sixteen minutes later — accounted for 14% of what
+remained, and was an order-entry error rather than a return.
+
+On a like-for-like basis, genuine product returns are **£475,246 against
+£19,417,504 of product revenue — 2.45%**. Excluding no returns at all and
+taking the raw cancellation total would have overstated the rate by more
+than three times.
+
+*Method: returns measured against `retail_raw`, since `retail_clean`
+excludes cancellation rows. Both sides of the calculation apply the same
+exclusions. Full investigation in `notes/data_quality_investigation.md`.*
 
 
 ## Repo
