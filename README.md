@@ -70,6 +70,11 @@ which is left unmodified. Full investigation and reasoning in
   where a product was entered several times on one invoice. The data cannot
   distinguish the two, and removing them would understate revenue if they are
   genuine, so they were kept and the ambiguity recorded.
+- **One phantom order excluded.** Invoice 541431 (74,215 ceramic storage jars,
+  2011-01-18 10:01) was cancelled 16 minutes later by C541433. An order-entry
+  error rather than a sale. Left in, it would have been the top product by
+  units sold and inflated revenue by £77,184. Found while investigating an
+  outlier in the returns analysis, not during the initial cleaning pass.
 
 ## Key findings
 
