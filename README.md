@@ -3,25 +3,26 @@
 Analysis of ~1.07M transactions from a UK-based online gift retailer
 (Dec 2009 – Dec 2011), using PostgreSQL.
 
-**Status:** in progress — data loaded and verified, analysis underway.
+**Status:** in progress — three of six questions answered.
 
 ## Source
 Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
 https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 
 ## Questions
-1. How did revenue trend over the two years?
-2. Which products drive revenue, and does that differ from unit volume?
+1. How did revenue trend over the two years? ✅
+2. Which products drive revenue, and does that differ from unit volume? ✅
 3. How concentrated is revenue by country?
 4. What is average order value, and how does it vary by market?
 5. What share of customers are repeat buyers, and what revenue do they drive?
-6. How much revenue is lost to returns?
+6. How much revenue is lost to returns? ✅
 
 ## Approach
 - Source data ships as a two-sheet `.xlsx`. `convert.py` combines both sheets
   into a single CSV — exporting one sheet from Excel silently drops ~half the rows.
 - Loaded into PostgreSQL via `\copy` after defining the schema.
-- Raw data kept unmodified in `retail_raw`; cleaning will happen in a separate table.
+- Raw data kept unmodified in `retail_raw`; `retail_clean` is built from it by
+  `sql/05_cleaning.sql`, which is re-runnable from scratch.
 
 ## Data quality
 
@@ -29,7 +30,7 @@ https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 - **Row count:** 1,067,371 rows loaded, matching the source file exactly.
 - **Missing customer IDs:** 243,007 rows (22.8%) have no customer ID. These are
   usable for revenue and product analysis but not for customer-level questions,
-  so question 5 runs on a smaller population than questions 1–4 and 6.
+  so question 5 will run on a smaller population than questions 1–4 and 6.
 - **Country field:** 43 distinct values; some may not be countries.
 
 Queries in `sql/03_verification.sql`.
@@ -76,12 +77,17 @@ which is left unmodified. Full investigation and reasoning in
   units sold and inflated revenue by £77,184. Found while investigating an
   outlier in the returns analysis, not during the initial cleaning pass.
 
-  **Result:** 1,067,371 rows in `retail_raw`, 1,011,989 in `retail_clean` —
+**Result:** 1,067,371 rows in `retail_raw`, 1,011,989 in `retail_clean` —
 55,382 rows removed (5.2%). Gross product revenue: £19,417,504.15.
+
+**Known limitation:** `retail_clean` removes cancellation rows but does not
+remove the original orders they cancel. The one large case above was caught
+because it distorted a ranking; smaller cancelled orders remain. Fixing this
+properly means matching every cancellation to its original invoice.
 
 ## Key findings
 
-### 1. Revenue is strongly seasonal, peaking in November.**
+### 1. Revenue is strongly seasonal, peaking in November
 Both years peak in November — £1.42M in 2010 and £1.46M in 2011 — with the
 ramp beginning in September and revenue roughly doubling off a £500–700K
 baseline. This is consistent with a wholesale gift retailer shipping stock
@@ -92,35 +98,51 @@ the honest read.
 
 ![Monthly revenue](outputs/q1_revenue_by_month.png)
 
-*Dec 2011 excluded because the data ends 09/12/2011. Daily revenue over those 9 days
-was £48.2K against £48.7K in November, so the run rate was flat and the
+*Dec 2011 excluded because the data ends 09/12/2011. Daily revenue over those
+9 days was £48.2K against £48.7K in November, so the run rate was flat and the
 apparent collapse is an artifact of the cut-off, not a change in the business.*
 
-### 2. Returns are 2.45% of revenue — and the headline figure is misleading twice over
+### 2. Revenue and volume are driven by two different product populations
+Only four products appear in both the revenue and units top tens. The two
+leaders are opposites: WW2 Gliders sell 108,771 units — more than any other
+product — but generate just £24,881 at £0.23 each, placing them **151st by
+revenue despite being first by volume**. The Regency Cakestand earns 13.6x
+that revenue (£338,556) on a quarter of the volume, at £12.48 per unit.
 
+Median unit price is £0.64 among the volume leaders and £2.74 among the
+revenue leaders. Ranking products by either measure alone would misrepresent
+the business: the volume list is cheap party and impulse goods, the revenue
+list is higher-priced statement pieces.
+
+*Method note: grouped by `stock_code` rather than description, because the
+same code appears with inconsistent descriptions — `21212` is recorded as both
+"PACK OF 72 RETROSPOT CAKE CASES" and "PACK OF 72 RETRO SPOT CAKE CASES".
+Grouping by description splits that product across two rows, moving it from
+2nd to 9th and 10th by units and understating another product's revenue by
+£34,631.*
+
+### 3. Returns are 2.45% of revenue — the headline figure misleads twice over
 Cancellation rows total £1.53M, which would suggest a return rate near 8%.
-Two corrections bring that down. First, two thirds of that value is
-accounting reversal rather than goods coming back: manual adjustments
-(£423,107) and Amazon fees (£265,350) dominate, alongside bank charges,
-postage and discounts. Second, a single transaction — 74,215 ceramic storage
-jars ordered and cancelled sixteen minutes later — accounted for 14% of what
-remained, and was an order-entry error rather than a return.
+Two corrections bring that down. First, two thirds of that value is accounting
+reversal rather than goods coming back: manual adjustments (£423,107) and
+Amazon fees (£265,350) dominate, alongside bank charges, postage and
+discounts. Second, a single transaction — 74,215 ceramic storage jars ordered
+and cancelled sixteen minutes later — accounted for 14% of what remained, and
+was an order-entry error rather than a return.
 
 On a like-for-like basis, genuine product returns are **£475,246 against
-£19,417,504 of product revenue — 2.45%**. Excluding no returns at all and
-taking the raw cancellation total would have overstated the rate by more
-than three times.
+£19,417,504 of product revenue — 2.45%**. Taking the raw cancellation total
+would have overstated the rate by more than three times.
 
-*Method: returns measured against `retail_raw`, since `retail_clean`
-excludes cancellation rows. Both sides of the calculation apply the same
-exclusions. Full investigation in `notes/data_quality_investigation.md`.*
-
+*Method: returns measured against `retail_raw`, since `retail_clean` excludes
+cancellation rows. Both sides of the calculation apply the same exclusions.
+Full investigation in `notes/data_quality_investigation.md`.*
 
 ## Repo
 - `sql/` — queries, numbered in execution order
-- `convert.py` — xlsx → CSV conversion
+- `notes/` — data quality investigation and decisions
 - `outputs/` — charts and exported results
-- `notes/` - data quality investigation and decisions
+- `convert.py` — xlsx → CSV conversion
 
 Raw data files are not committed. Download from the source above and run
 `convert.py` to reproduce.
