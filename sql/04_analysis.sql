@@ -22,6 +22,7 @@ order by date_trunc('month', invoice_date) asc;
 -- Implication: any month-on-month comparison has to account for this —
 -- a January decline is seasonal, not a downturn.
 
+
 -- ============================================================
 -- Q2: Which products drive revenue, and does that differ from
 --     unit volume?
@@ -94,6 +95,54 @@ from retail_clean
 group by stock_code
 order by units desc
 limit 10;
+
+
+-- ============================================================
+-- Q3: How concentrated is revenue by country?
+-- ============================================================
+--
+-- Run against retail_clean. The percentage column divides each country's
+-- revenue by the table total, computed with a scalar subquery rather than
+-- a hardcoded figure so it stays correct if retail_clean is rebuilt.
+--
+-- Result: revenue is extremely concentrated.
+--   United Kingdom          £16,584,435   85.41%
+--   EIRE (Ireland)             £621,788    3.20%
+--   Netherlands                £538,225    2.77%
+--   Germany                    £381,806    1.97%
+--   France                     £310,410    1.60%
+--   ...
+--   Top 5 markets combined                94.95%
+--   Remaining 38 markets combined          5.05%
+--
+-- Non-UK revenue totals £2,833,069 (14.59%) across 42 markets.
+--
+-- Validation: the 43 country rows sum to £19,417,504.15, matching the
+-- retail_clean total exactly — no rows lost to grouping.
+--
+-- Interpretation: this is a UK domestic business with a thin European
+-- export tail, not an international one. The practical implication is
+-- for Q4: outside the top five markets, per-market samples are small
+-- enough that comparing average order value across all 43 would be
+-- reading noise. Any market-level comparison should be limited to the
+-- five markets that carry 95% of revenue.
+--
+-- Data quality, noted but not acted on:
+--   - "Unspecified" (£10,936) and "European Community" (£1,159) are not
+--     countries. Combined they are 0.062% of revenue — excluding them
+--     changes no figure above to two decimal places, so they were left in.
+--   - The field is not a clean country list: EIRE is the archaic name for
+--     Ireland, RSA an abbreviation for South Africa, Channel Islands a
+--     crown dependency, West Indies a region. Naming is inconsistent but
+--     no entry is duplicated, so totals are unaffected.
+
+select country, 
+	round(sum(quantity * price), 2) as revenue, 
+	round(100 * sum(quantity * price)
+          / (select sum(quantity * price) from retail_clean), 2) as pct_of_revenue 
+from retail_clean
+group by country
+order by revenue desc;
 
 
 -- ============================================================
