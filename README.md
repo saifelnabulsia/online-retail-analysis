@@ -3,7 +3,7 @@
 Analysis of ~1.07M transactions from a UK-based online gift retailer
 (Dec 2009 – Dec 2011), using PostgreSQL.
 
-**Status:** in progress — three of six questions answered.
+**Status:** in progress — four of six questions answered.
 
 ## Source
 Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -12,7 +12,7 @@ https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 ## Questions
 1. How did revenue trend over the two years? ✅
 2. Which products drive revenue, and does that differ from unit volume? ✅
-3. How concentrated is revenue by country?
+3. How concentrated is revenue by country? ✅
 4. What is average order value, and how does it vary by market?
 5. What share of customers are repeat buyers, and what revenue do they drive?
 6. How much revenue is lost to returns? ✅
@@ -31,7 +31,7 @@ https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 - **Missing customer IDs:** 243,007 rows (22.8%) have no customer ID. These are
   usable for revenue and product analysis but not for customer-level questions,
   so question 5 will run on a smaller population than questions 1–4 and 6.
-- **Country field:** 43 distinct values; some may not be countries.
+- **Country field:** 43 distinct values; some may not be countries (examined in finding 3).
 
 Queries in `sql/03_verification.sql`.
 
@@ -121,7 +121,25 @@ Grouping by description splits that product across two rows, moving it from
 2nd to 9th and 10th by units and understating another product's revenue by
 £34,631.*
 
-### 3. Returns are 2.45% of revenue — the headline figure misleads twice over
+### 3. Revenue is overwhelmingly domestic — the UK is 85% of it
+The United Kingdom accounts for £16,584,435, or 85.41% of product revenue.
+The next four markets — Ireland, the Netherlands, Germany and France — bring
+the top five to 94.95%. The remaining 38 markets together account for 5.05%,
+and all but five sit below 1% individually.
+
+This is a UK business with a thin European export tail rather than an
+international one, and it sets a limit on what the rest of the analysis can
+claim: outside the top five markets, per-market samples are small enough that
+comparing metrics across all 43 would be reading noise rather than signal.
+
+*Two entries in the country field are not countries — "Unspecified" (£10,936)
+and "European Community" (£1,159). Combined they are 0.062% of revenue, so
+excluding them changes no figure above to two decimal places and they were
+left in. The field is also inconsistently named (EIRE for Ireland, RSA for
+South Africa, Channel Islands as a crown dependency), though no market is
+duplicated, so totals are unaffected.*
+
+### 4. Returns are 2.45% of revenue — the headline figure misleads twice over
 Cancellation rows total £1.53M, which would suggest a return rate near 8%.
 Two corrections bring that down. First, two thirds of that value is accounting
 reversal rather than goods coming back: manual adjustments (£423,107) and
