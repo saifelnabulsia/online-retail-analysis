@@ -132,6 +132,8 @@ international one, and it sets a limit on what the rest of the analysis can
 claim: outside the top five markets, per-market samples are small enough that
 comparing metrics across all 43 would be reading noise rather than signal.
 
+![Revenue by export market](outputs/q3_revenue_by_market.png)
+
 *Two entries in the country field are not countries — "Unspecified" (£10,936)
 and "European Community" (£1,159). Combined they are 0.062% of revenue, so
 excluding them changes no figure above to two decimal places and they were
