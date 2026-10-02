@@ -146,6 +146,123 @@ order by revenue desc;
 
 
 -- ============================================================
+-- Q4: What is average order value, and how does it vary by market?
+-- ============================================================
+--
+-- Run against retail_clean.
+--
+-- Definition: an order is an invoice, not a row. The table holds one row per
+-- line item, so an invoice with eight products is eight rows. The denominator
+-- is therefore count(distinct invoice), not count(*). Dividing revenue by row
+-- count would give the average line-item value, which is not a metric anyone
+-- uses.
+--
+-- Known limitation: retail_clean excludes cancellation rows but keeps the
+-- original orders they cancel, so an order that was later cancelled still
+-- counts here. Same limitation recorded in the README.
+
+
+-- Q4a: Overall average order value.
+--
+-- Result: £19,417,504.15 across 38,699 orders = £501.76 per order.
+--
+-- Cross-check: 1,011,989 line items / 38,699 orders = 26 distinct products
+-- per order. Combined with the November peak in Q1, that is a second
+-- independent signal that this is wholesale rather than consumer retail —
+-- nobody buys 26 separate product lines for a household.
+
+select round(sum(quantity * price), 2) as total_revenue,
+       count(distinct invoice) as order_count,
+       round(sum(quantity * price) / count(distinct invoice), 2) as avg_order_value
+from retail_clean;
+
+
+-- Q4b: Order value distribution — is the mean representative?
+--
+-- A mean is pulled upward by large outliers, so on transaction data it is
+-- usually above the typical order. Checked with a median.
+--
+-- The CTE collapses 1,011,989 line items into 38,699 rows, one per invoice,
+-- each carrying that order's total. The outer query then treats each ORDER as
+-- a single data point rather than each line item.
+--
+-- percentile_cont(0.5) within group (order by order_total) sorts the order
+-- totals and returns the midpoint. ::numeric casts the result so round() will
+-- accept it.
+--
+-- Result:
+--   orders          38,699
+--   mean            £501.76
+--   median          £303.30
+--   smallest order  £0.19
+--   largest order   £52,940.94
+--
+-- The mean is 65% above the median. The typical order is roughly £300; the
+-- average is £500 because a minority of very large wholesale orders pull it
+-- up. Quoting AOV alone would overstate what a typical customer spends by
+-- two thirds.
+--
+-- Validation: 38,699 x £501.76 reconciles to the £19,417,504.15 total.
+
+with order_totals as (
+    select invoice,
+           sum(quantity * price) as order_total
+    from retail_clean
+    group by invoice
+)
+select count(*)                   as order_count,
+       round(avg(order_total), 2) as mean_aov,
+       round(percentile_cont(0.5) within group (order by order_total)::numeric, 2)
+                                  as median_aov,
+       round(min(order_total), 2) as smallest_order,
+       round(max(order_total), 2) as largest_order
+from order_totals;
+
+
+-- Q4c: Average order value by market.
+--
+-- order_count is kept visible deliberately. Per Q3, only five markets carry
+-- meaningful volume; 11 markets have three orders or fewer, where the "average"
+-- is one or two transactions and means nothing. Bermuda's £1,253.14 is a single
+-- order, not an average.
+--
+-- Result, markets with meaningful volume:
+--   United Kingdom   £16,584,435   35,439 orders   AOV   £467.97
+--   Germany             £381,806      736 orders   AOV   £518.76
+--   France              £310,410      581 orders   AOV   £534.27
+--   EIRE (Ireland)      £621,788      571 orders   AOV £1,088.95
+--   Netherlands         £538,225      213 orders   AOV £2,526.88
+--   Spain                £98,325      142 orders   AOV   £692.43
+--   Belgium              £56,034      139 orders   AOV   £403.12
+--   Australia           £168,485       89 orders   AOV £1,893.09
+--
+-- The headline split:
+--   UK       £467.97 per order over 35,439 orders
+--   Export   £869.04 per order over  3,260 orders  (1.86x the UK)
+--
+-- Note the UK accounts for 85.4% of revenue but 91.6% of orders — a larger
+-- share of orders than of revenue, which is why its AOV sits BELOW the
+-- overall £501.76 despite dominating the business.
+--
+-- The Netherlands is the standout at 5.4x the UK's order size on only 213
+-- orders. Australia (£1,893), Denmark (£1,669) and Japan (£1,428) follow the
+-- same pattern.
+--
+-- Interpretation: export orders are nearly twice the size of domestic ones.
+-- A plausible explanation is that cross-border shipping makes small
+-- international orders uneconomic, so only larger wholesale consignments
+-- travel — but that is a hypothesis this data cannot confirm, since it holds
+-- no shipping cost or customer-type information.
+
+select country,
+       round(sum(quantity * price), 2) as total_revenue,
+       count(distinct invoice) as order_count,
+       round(sum(quantity * price) / count(distinct invoice), 2) as avg_order_value
+from retail_clean
+group by country
+order by total_revenue desc;
+
+-- ============================================================
 -- Q6: How much revenue is lost to returns?
 -- ============================================================
 -- Returns are measured against retail_raw, not retail_clean — the clean
