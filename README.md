@@ -3,7 +3,7 @@
 Analysis of ~1.07M transactions from a UK-based online gift retailer
 (Dec 2009 – Dec 2011), using PostgreSQL.
 
-**Status:** in progress — four of six questions answered.
+**Status:** in progress — five of six questions answered.
 
 ## Source
 Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -13,7 +13,7 @@ https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 1. How did revenue trend over the two years? ✅
 2. Which products drive revenue, and does that differ from unit volume? ✅
 3. How concentrated is revenue by country? ✅
-4. What is average order value, and how does it vary by market?
+4. What is average order value, and how does it vary by market? ✅
 5. What share of customers are repeat buyers, and what revenue do they drive?
 6. How much revenue is lost to returns? ✅
 
@@ -141,7 +141,33 @@ left in. The field is also inconsistently named (EIRE for Ireland, RSA for
 South Africa, Channel Islands as a crown dependency), though no market is
 duplicated, so totals are unaffected.*
 
-### 4. Returns are 2.45% of revenue — the headline figure misleads twice over
+### 4. The typical order is £300, not £500 — and export orders are twice the size of domestic ones
+
+Average order value across 38,699 orders is £501.76, but the median order is
+**£303.30**. The mean sits 65% above the typical order because a minority of
+very large wholesale orders pull it up — the range runs from £0.19 to
+£52,940.94. Quoting AOV alone would overstate what a typical customer spends
+by two thirds.
+
+Order size also splits sharply by geography. The UK accounts for 85.4% of
+revenue but 91.6% of orders, so its average order is **£467.97** — below the
+overall figure. Export orders average **£869.04**, 1.86x the UK. The
+Netherlands is the extreme case at £2,526.88 per order, 5.4x the UK, across
+only 213 orders.
+
+A plausible explanation is that cross-border shipping costs make small
+international orders uneconomic, so only larger consignments travel. This
+dataset cannot confirm that — it holds no shipping or customer-type
+information — but it is the obvious candidate and would be the first thing to
+test with additional data.
+
+*An order is defined as a distinct invoice, not a row: the table holds one row
+per line item, so dividing revenue by row count would give the average line
+item rather than the average order. Eleven markets have three orders or fewer,
+where the "average" is one or two transactions — those rows are reported with
+their order counts rather than compared against markets with meaningful volume.*
+
+### 5. Returns are 2.45% of revenue — the headline figure misleads twice over
 Cancellation rows total £1.53M, which would suggest a return rate near 8%.
 Two corrections bring that down. First, two thirds of that value is accounting
 reversal rather than goods coming back: manual adjustments (£423,107) and
