@@ -262,6 +262,72 @@ from retail_clean
 group by country
 order by total_revenue desc;
 
+
+-- ============================================================
+-- Q5: What share of customers are repeat buyers, and what
+--     revenue do they drive?
+-- ============================================================
+--
+-- POPULATION NOTE — this is the only question that runs on a different
+-- population from the rest. 243,007 rows have no customer_id. A transaction
+-- with no customer attached cannot be assigned to a person, so those rows
+-- cannot enter a customer-level count at all: there is no way to tell
+-- whether they came from one buyer or twenty thousand. This query therefore
+-- filters to customer_id IS NOT NULL, and every figure below describes
+-- identified customers only.
+--
+-- How much of the business that covers: identified customers account for
+-- £16,844,051 of revenue — 86.7% of the £19,417,504.15 total. So although
+-- 22.8% of ROWS lack a customer ID, those rows represent only 13.3% of
+-- REVENUE. Unidentified transactions are smaller on average, which means
+-- this population covers more of the business than the row-count figure
+-- suggests.
+--
+-- Known bias, in the other direction: customers with IDs are account
+-- holders, who are more likely to be returning wholesale buyers than
+-- walk-up purchasers. The repeat rate below is therefore probably higher
+-- than the true rate across all buyers. Both points are true and both are
+-- stated in the README.
+--
+-- Structure: the CTE produces one row per customer carrying their order
+-- count and total spend — an aggregate. The outer query then aggregates
+-- THAT result, splitting customers into two groups. A single SELECT only
+-- allows one level of grouping, so the CTE is required, not stylistic.
+--
+-- "order_count > 1" is an expression evaluating to true or false per row,
+-- so it can be grouped on directly. This avoids a CASE statement and keeps
+-- the split explicit: false = one-time buyer, true = repeat buyer.
+--
+-- Result (5,824 identified customers):
+--
+--   is_repeat   customers        revenue      % customers   % revenue
+--   false           1,647       £573,723          28.3%         3.4%
+--   true            4,177    £16,270,327          71.7%        96.6%
+--
+--   Revenue per customer: one-time £348.34, repeat £3,895.22 — 11.2x.
+--
+-- Interpretation: the business runs almost entirely on repeat
+-- relationships. 96.6% of identified revenue comes from customers who
+-- ordered more than once, while the 28% who never returned contributed 3%.
+-- For a wholesaler this is the expected shape, but the magnitude is the
+-- finding: a repeat customer is worth eleven times a one-time one, which
+-- means retention is worth more than acquisition at almost any plausible
+-- cost ratio.
+
+
+with customer_orders as (
+	select customer_id, count(distinct invoice) as order_count,
+		sum(quantity * price) as customer_revenue
+	from retail_clean
+	where customer_id is not null
+	group by customer_id)
+select order_count > 1 as is_repeat, 
+count(*) as number_of_customers,
+round(sum(customer_revenue), 2) as total_revenue
+from customer_orders
+group by order_count > 1;
+
+
 -- ============================================================
 -- Q6: How much revenue is lost to returns?
 -- ============================================================
