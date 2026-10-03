@@ -1,21 +1,22 @@
 # Online Retail Sales Analysis
 
 Analysis of ~1.07M transactions from a UK-based online gift retailer
-(Dec 2009 – Dec 2011), using PostgreSQL.
+(Dec 2009 – Dec 2011), using PostgreSQL. The business is a wholesaler: revenue 
+peaks every November, the average order carries 26 product lines,
+and 96.6% of identified revenue comes from repeat customers.
 
-**Status:** in progress — five of six questions answered.
 
 ## Source
 Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
 https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 
 ## Questions
-1. How did revenue trend over the two years? ✅
-2. Which products drive revenue, and does that differ from unit volume? ✅
-3. How concentrated is revenue by country? ✅
-4. What is average order value, and how does it vary by market? ✅
+1. How did revenue trend over the two years?
+2. Which products drive revenue, and does that differ from unit volume?
+3. How concentrated is revenue by country?
+4. What is average order value, and how does it vary by market?
 5. What share of customers are repeat buyers, and what revenue do they drive?
-6. How much revenue is lost to returns? ✅
+6. How much revenue is lost to returns?
 
 ## Approach
 - Source data ships as a two-sheet `.xlsx`. `convert.py` combines both sheets
@@ -167,7 +168,27 @@ item rather than the average order. Eleven markets have three orders or fewer,
 where the "average" is one or two transactions — those rows are reported with
 their order counts rather than compared against markets with meaningful volume.*
 
-### 5. Returns are 2.45% of revenue — the headline figure misleads twice over
+### 5. A repeat customer is worth eleven times a one-time one
+
+Of 5,824 identified customers, 71.7% ordered more than once — and they
+account for **96.6% of revenue**. The 28.3% who never came back contributed
+3.4%. Per customer that is **£3,895 against £348, a ratio of 11.2x**.
+
+For a wholesaler this shape is expected; the magnitude is the finding. At
+that ratio, retaining an existing customer is worth more than acquiring a
+new one at almost any plausible cost comparison, and the single most
+valuable thing the business could measure next is why 1,647 customers
+ordered once and never returned.
+
+*Population note: this is the only question that runs on a subset. 243,007
+rows have no customer ID and cannot be attributed to a person, so the
+analysis covers identified customers only. Those customers represent
+£16,844,051 — 86.7% of total revenue — so while 22.8% of rows are excluded,
+only 13.3% of revenue is. The bias runs the other way too: customers with
+IDs are account holders and likely more loyal than walk-up buyers, so 71.7%
+probably overstates the true repeat rate across all purchasers.*
+
+### 6. Returns are 2.45% of revenue — the headline figure misleads twice over
 Cancellation rows total £1.53M, which would suggest a return rate near 8%.
 Two corrections bring that down. First, two thirds of that value is accounting
 reversal rather than goods coming back: manual adjustments (£423,107) and
@@ -183,6 +204,12 @@ would have overstated the rate by more than three times.
 *Method: returns measured against `retail_raw`, since `retail_clean` excludes
 cancellation rows. Both sides of the calculation apply the same exclusions.
 Full investigation in `notes/data_quality_investigation.md`.*
+
+
+## Planned
+Cohort retention analysis — monthly cohorts by first purchase, tracked
+forward. Requires window functions.
+
 
 ## Repo
 - `sql/` — queries, numbered in execution order
