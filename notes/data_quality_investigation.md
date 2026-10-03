@@ -443,6 +443,6 @@ removal risks understating revenue.
 - Row count removed by the non-product stock code exclusion
 - Cancelled orders whose original purchase remains in `retail_clean`
   (see Check 6) — only the one large case was handled
-- Whether `retail_clean` should also drop rows with no customer ID (243,007,
-  22.8%) — currently **no**: they are usable for Q1–Q4 and Q6, and only Q5
-  needs to filter them out
+- Rows with no customer ID (243,007, 22.8%) were kept in 'retail_clean' and
+  filtered only inside Q5, which is the one question that needs customer attribution.
+  Resolved: Those rows represent 13.3% of revenue, so Q5 covers 86.7% of the business.
