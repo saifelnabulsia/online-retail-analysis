@@ -1,6 +1,6 @@
 # Online Retail Sales Analysis
 
-Analysis of ~1.07M transactions from a UK-based online gift retailer
+Analysis of a 1.07M-transaction dataset from a UK-based online gift retailer
 (Dec 2009 – Dec 2011), using PostgreSQL. The business is a wholesaler: revenue 
 peaks every November, the average order carries 26 product lines,
 and 96.6% of identified revenue comes from repeat customers.
@@ -32,7 +32,7 @@ https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 - **Missing customer IDs:** 243,007 rows (22.8%) have no customer ID. These are
   usable for revenue and product analysis but not for customer-level questions,
   so question 5 runs on a smaller population than questions 1–4 and 6.
-- **Country field:** 43 distinct values; some may not be countries (examined in finding 3).
+- **Country field:** 43 distinct values; two entries are not countries (examined in finding 3).
 
 Queries in `sql/03_verification.sql`.
 
@@ -105,6 +105,12 @@ The practical implication is that month-on-month comparison is misleading
 here: a January decline is seasonal, not a downturn.
 
 ![Monthly revenue](outputs/q1_revenue_by_month.png)
+
+*The series ends at November 2011 because the data stops on 09/12/2011,
+making December a 9-day month. Measured on the raw table before cleaning,
+those 9 days averaged £48.2K/day against £48.7K/day in November — the run
+rate was flat, so the shortfall is the cut-off rather than a change in the
+business.*
 
 
 ### 2. Revenue and volume are driven by two different product populations
