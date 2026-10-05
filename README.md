@@ -89,19 +89,23 @@ properly means matching every cancellation to its original invoice.
 ## Key findings
 
 ### 1. Revenue is strongly seasonal, peaking in November
-Both years peak in November — £1.42M in 2010 and £1.46M in 2011 — with the
-ramp beginning in September and revenue roughly doubling off a £500–700K
-baseline. This is consistent with a wholesale gift retailer shipping stock
-to retailers ahead of Christmas. The practical implication is that
-month-on-month comparisons are misleading on this data: a January decline
-is seasonal, not a downturn. Year-on-year comparison of the same month is
-the honest read.
+Both years peak in November — £1,435,680 in 2010 and £1,457,746 in 2011 —
+with the ramp beginning in September. Off-season months sit between £509K
+and £764K, so the peak runs 2.2x the January–August average and 2.9x the
+February trough. This is consistent with a wholesale gift retailer shipping
+stock to retailers ahead of Christmas.
 
-![Monthly revenue](outputs/q1_revenue_by_month.png)
+The data holds two complete comparable 12-month periods: Dec 2009–Nov 2010
+at £9.43M against Dec 2010–Nov 2011 at £9.99M, **growth of 5.9%**. That
+comparison is only meaningful because both windows contain exactly one
+Christmas season — comparing calendar years would have put one peak against
+none.
 
-*Dec 2011 excluded because the data ends 09/12/2011. Daily revenue over those
-9 days was £48.2K against £48.7K in November, so the run rate was flat and the
-apparent collapse is an artifact of the cut-off, not a change in the business.*
+The practical implication is that month-on-month comparison is misleading
+here: a January decline is seasonal, not a downturn.
+
+![Monthly revenue]()
+
 
 ### 2. Revenue and volume are driven by two different product populations
 Only four products appear in both the revenue and units top tens. The two
