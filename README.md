@@ -31,7 +31,7 @@ https://doi.org/10.24432/C5CG6D — licensed CC BY 4.0.
 - **Row count:** 1,067,371 rows loaded, matching the source file exactly.
 - **Missing customer IDs:** 243,007 rows (22.8%) have no customer ID. These are
   usable for revenue and product analysis but not for customer-level questions,
-  so question 5 will run on a smaller population than questions 1–4 and 6.
+  so question 5 runs on a smaller population than questions 1–4 and 6.
 - **Country field:** 43 distinct values; some may not be countries (examined in finding 3).
 
 Queries in `sql/03_verification.sql`.
