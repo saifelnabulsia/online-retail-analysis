@@ -5,7 +5,8 @@
 SELECT COUNT(*) AS total_rows FROM retail_raw;
 
 -- 2. Number of distinct countries.
---    Result: 43. Some entries may not be real countries (to check).
+--    Result: 43. Some entries are not countries ("Unspecified",
+--    "European Community") - examined in Q3; they are 0.062% of revenue.   
 SELECT COUNT(DISTINCT country) AS country_count FROM retail_raw;
 
 -- 3. Rows with no customer ID.
