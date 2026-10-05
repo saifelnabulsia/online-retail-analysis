@@ -7,7 +7,7 @@ print("Sheets found:", list(sheets.keys()))
 # stack the sheets on top of each other into one table
 combined = pd.concat(sheets.values(), ignore_index=True)
 
-# rename to snake_case so the CSV header matches your Postgres column names
+# rename to snake_case so the CSV header matches the Postgres column names
 combined.columns = [
     "invoice", "stock_code", "description", "quantity",
     "invoice_date", "price", "customer_id", "country"
