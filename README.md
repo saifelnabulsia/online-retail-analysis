@@ -104,7 +104,7 @@ none.
 The practical implication is that month-on-month comparison is misleading
 here: a January decline is seasonal, not a downturn.
 
-![Monthly revenue]()
+![Monthly revenue](outputs/q1_revenue_by_month.png)
 
 
 ### 2. Revenue and volume are driven by two different product populations
