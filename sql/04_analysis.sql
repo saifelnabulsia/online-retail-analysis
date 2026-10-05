@@ -1,26 +1,36 @@
 -- ============================================================
 -- Q1: How did revenue trend over the two years?
 -- ============================================================
--- December 2011 excluded: the data ends 2011-12-09, so that month covers
--- only 9 days. Plotting it against full months makes the trend look like
--- a collapse that did not happen.
 --
--- -- Verified before excluding: Dec 2011 averaged 48,187/day over 9 days
--- vs November's 48,725/day over 30. Run rate flat; the drop is the
--- cut-off, not the business.
+-- Run against retail_clean, so the figures are on the same basis as every
+-- other question. December 2011 needs no filter here — the clean table
+-- already excludes it.
+--
+-- Validation: the 24 monthly figures sum to £19,417,504.14, matching the
+-- retail_clean total of £19,417,504.15 to within a penny of rounding.
 
 select date_trunc('month', invoice_date) as month,
        round(sum(quantity * price), 2) as revenue
-from retail_raw
-where invoice_date < '2011-12-01'
+from retail_clean
 group by date_trunc('month', invoice_date)
 order by date_trunc('month', invoice_date) asc;
 
--- Finding: Revenue is strongly seasonal. Both years peak in November
--- (1.42M in 2010, 1.46M in 2011), with the ramp starting in September.
--- Consistent with a wholesale gift retailer shipping Christmas stock.
--- Implication: any month-on-month comparison has to account for this —
--- a January decline is seasonal, not a downturn.
+-- Finding: revenue is strongly seasonal. Both years peak in November
+-- (£1,435,680 in 2010, £1,457,746 in 2011) with the ramp starting in
+-- September. Jan–Aug months sit between £509K and £764K, averaging £652K,
+-- so the November peak is 2.2x the off-season average and 2.9x the
+-- February trough. Consistent with a wholesale gift retailer shipping
+-- Christmas stock to retailers.
+--
+-- Year-on-year: the data contains two complete comparable 12-month periods.
+-- Dec 2009–Nov 2010 totalled £9,429,521; Dec 2010–Nov 2011 totalled
+-- £9,987,983 — growth of 5.9%.
+--
+-- Implication: month-on-month comparison is misleading on this data. A
+-- January decline is seasonal, not a downturn. Year-on-year comparison of
+-- the same month, or of full comparable periods, is the honest read.
+
+
 
 
 -- ============================================================
@@ -327,22 +337,28 @@ round(sum(customer_revenue), 2) as total_revenue
 from customer_orders
 group by order_count > 1;
 
-
 -- ============================================================
 -- Q6: How much revenue is lost to returns?
 -- ============================================================
--- Returns are measured against retail_raw, not retail_clean — the clean
+-- Returns are measured against retail_raw, not retail_clean - the clean
 -- table excludes cancellation rows, which are exactly what this question
 -- is about.
 --
--- Step 1: denominator — gross product sales (retail_clean).
+-- Step 1: denominator - gross product sales (retail_clean).
+-- 
+-- Result: £19,417,504.15.
 
 select round(sum(quantity * price), 2)  as revenue from retail_clean;
 
--- Step 2: numerator - returns (retail_raw).
+-- Step 2: numerator - returns (retail_raw), with the same exclusions as
+-- the denominator so the two are comparable: non-product stock codes,
+-- December 2011, and the phantom order. The only inversion is the invoice
+-- filter — LIKE 'C%' instead of NOT LIKE.
+--
+-- Result: −£475,245.63.
 
 select round(sum(quantity * price), 2) as returned_value from retail_raw
-where invoice like 'C%' and price > 0 -- same exclusions as denominator
+where invoice like 'C%' and price > 0
 and invoice_date < '2011-12-01'
 and invoice != 'C541433'
 and stock_code not in ('POST', 'DOT', 'C2', 'C3', 'BANK CHARGES',
@@ -350,8 +366,9 @@ and stock_code not in ('POST', 'DOT', 'C2', 'C3', 'BANK CHARGES',
 'TEST001', 'TEST002', 'gift_0001_10', 'gift_0001_20','gift_0001_30','gift_0001_40',
 'gift_0001_50','gift_0001_60','gift_0001_70','gift_0001_80','gift_0001_90');
 
--- Diagnostic: the numerator above (£552,429) is far below the £1,526,668
--- of total cancellation value found during the data quality investigation.
+-- Diagnostic: before the phantom order was identified, the like-for-like
+-- numerator came to £552,429 — far below the £1,526,668 of total
+-- cancellation value found during the data quality investigation.
 -- Grouping by stock_code — with the stock-code exclusion deliberately
 -- OMITTED — shows which codes carry the missing value.
 --
